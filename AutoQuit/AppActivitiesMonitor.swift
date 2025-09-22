@@ -5,9 +5,8 @@
 //  Created by Huanan on 2025/9/19.
 //
 
-
-internal import Combine
 import AppKit
+import Combine
 import OSLog
 
 extension NSWorkspace {
@@ -20,7 +19,6 @@ extension NSWorkspace {
     }
 }
 
-
 class AppActivitiesMonitor {
 
     var workspaceObs: AnyCancellable?
@@ -29,6 +27,9 @@ class AppActivitiesMonitor {
     func setup() {
         StartObserveApps()
     }
+}
+
+extension AppActivitiesMonitor {
 
     func StartObserveApps() {
         workspaceObs = NSWorkspace.shared.publisher(for: \.runningApplications).sink { [weak self] runningApps in
@@ -48,7 +49,9 @@ class AppActivitiesMonitor {
         }
         runningAppActiveObs[identifier] = obs
     }
+}
 
+extension AppActivitiesMonitor {
     func handleWorkspaceStateChanges(_ apps: [NSRunningApplication]) {
         let newAppIds = apps.compactMap(\.bundleIdentifier)
         let oldAppIds = runningAppActiveObs.keys

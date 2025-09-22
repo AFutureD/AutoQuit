@@ -8,14 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var appState: AppState
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Button("Click Me") {
+            appState.permissions.accessibility.checkPermissionAndPromptIfNeeded()
         }
-        .padding()
     }
 }
 
