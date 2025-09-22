@@ -6,27 +6,14 @@
 //
 
 import AppKit
+import AsyncAlgorithms
 import Combine
 
-extension AccessibilityMonitor {
-    struct Updates: AsyncSequence {
-        func makeAsyncIterator() -> AsyncPublisher<AnyPublisher<Bool, Never>>.Iterator {
-            Timer.publish(every: 1, on: .main, in: .common)
-                .autoconnect()
-                .map { _ in
-                    AccessibilityMonitor.hasPermission
-                }
-                .removeDuplicates()
-                .eraseToAnyPublisher()
-                .values
-                .makeAsyncIterator()
-        }
-    }
-}
-
 class AccessibilityMonitor {
-    func updates() -> Updates {
-        Updates()
+    func updates() -> any AsyncSequence<Bool, Never> {
+        AsyncTimerSequence(interval: .seconds(1), clock: .continuous).map { _ in
+            AccessibilityMonitor.hasPermission
+        }.removeDuplicates()
     }
 }
 

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		1999F5042E81914000B3C6E3 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 1999F5032E81914000B3C6E3 /* AsyncAlgorithms */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		19FADB6E2E7D66770032ACD8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1999F5042E81914000B3C6E3 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = AutoQuit;
 			packageProductDependencies = (
+				1999F5032E81914000B3C6E3 /* AsyncAlgorithms */,
 			);
 			productName = AutoQuit;
 			productReference = 19FADB602E7D66750032ACD8 /* AutoQuit.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 19FADB572E7D66750032ACD8;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1999F5022E81914000B3C6E3 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 19FADB612E7D66750032ACD8 /* Products */;
 			projectDirPath = "";
@@ -577,6 +586,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1999F5022E81914000B3C6E3 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1999F5032E81914000B3C6E3 /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1999F5022E81914000B3C6E3 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 19FADB582E7D66750032ACD8 /* Project object */;
 }

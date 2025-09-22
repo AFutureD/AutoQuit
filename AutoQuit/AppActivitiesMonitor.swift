@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import AsyncAlgorithms
 import Combine
 import OSLog
 
@@ -23,6 +24,7 @@ class AppActivitiesMonitor {
 
     var workspaceObs: AnyCancellable?
     var runningAppActiveObs: [String: AnyCancellable] = [:]
+    var runningAppLastActiveTime: [pid_t: Date] = [:]
 
     func setup() {
         StartObserveApps()
@@ -67,6 +69,30 @@ extension AppActivitiesMonitor {
     func handleApplicationActiveChanges(_ app: NSRunningApplication, _ isActive: Bool) {
         guard let identifier = app.bundleIdentifier else { return }
 
-        logger.info("\(identifier) - isActive: \(isActive) hasWindow: \(app.hasAnyWindowAX(promptForAccessIfNeeded: true))")
+        logger.info("\(identifier) - isActive: \(isActive) hasWindow: \(app.hasAnyWindow ?? true)")
+    }
+}
+
+extension AppActivitiesMonitor {
+    struct Update: Hashable {
+        let appProcessIdentifier: pid_t
+        let lastActiveDate: Date
+        let hasAnyWindow: Bool
+    }
+
+    func updates(idle: TimeInterval) -> any AsyncSequence<Update, Never> {
+        AsyncTimerSequence(interval: .seconds(1), clock: .continuous).map { [weak self] instant in
+            self?.runningAppLastActiveTime.filter {
+                $0.value.advanced(by: idle) < Date()
+            }.compactMap { (pid: pid_t, value: Date) in
+                guard let app = NSWorkspace.shared.runningApp(by: pid) else { return nil }
+
+                return Update(
+                    appProcessIdentifier: app.processIdentifier,
+                    lastActiveDate: value,
+                    hasAnyWindow: app.hasAnyWindow ?? true
+                )
+            } ?? []
+        }.flatMap { $0.async }.removeDuplicates()
     }
 }

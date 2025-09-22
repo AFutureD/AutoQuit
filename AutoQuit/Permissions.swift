@@ -10,10 +10,7 @@ import Combine
 class Permissions {
     let accessibility = AccessibilityMonitor()
 
-    var isOK: AsyncStream<Bool> {
-        var iterator = accessibility.updates().makeAsyncIterator()
-        return AsyncStream {
-            await iterator.next()
-        }
+    var isOK: any AsyncSequence<Bool, Never> {
+        accessibility.updates()
     }
 }
