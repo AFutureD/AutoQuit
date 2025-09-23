@@ -17,15 +17,6 @@ extension NSRunningApplication {
         let err = AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &value)
         guard err == .success, let windows = value as? [AXUIElement], !windows.isEmpty else { return false }
 
-        for w in windows {
-            var minRef: CFTypeRef?
-            if AXUIElementCopyAttributeValue(w, kAXMinimizedAttribute as CFString, &minRef) == .success,
-                let minimized = minRef as? Bool, minimized == true
-            {
-                continue
-            }
-            return true
-        }
-        return false
+        return !windows.isEmpty
     }
 }

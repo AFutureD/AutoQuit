@@ -35,7 +35,7 @@ class AppState: NSObject, ObservableObject {
         }
 
         Task {
-            for await update in activitiedMonitor.updates(idle: 1) {
+            for await update in activitiedMonitor.updates(idle: 10) {
                 if !update.hasAnyWindow {
                     applicationManager.shutdown(update.appProcessIdentifier)
                 }

@@ -20,11 +20,24 @@ extension NSWorkspace {
     }
 }
 
-class AppActivitiesMonitor {
+extension AppActivitiesMonitor {
+    struct RunningState: Hashable {
+        let updateAt: Date
+        let isActive: Bool
+    }
+}
 
+extension AppActivitiesMonitor: LogCarrier {
+    static var category: String {
+        "AppActivitiesMonitor"
+    }
+}
+
+
+class AppActivitiesMonitor {
     var workspaceObs: AnyCancellable?
-    var runningAppActiveObs: [String: AnyCancellable] = [:]
-    var runningAppLastActiveTime: [pid_t: Date] = [:]
+    var runningAppActiveObs: [pid_t: AnyCancellable] = [:]
+    var runningAppLastActiveTime: [pid_t: RunningState] = [:]
 
     func setup() {
         StartObserveApps()
@@ -34,6 +47,7 @@ class AppActivitiesMonitor {
 extension AppActivitiesMonitor {
 
     func StartObserveApps() {
+        logger.info("[*] StartObserveApps")
         workspaceObs = NSWorkspace.shared.publisher(for: \.runningApplications).sink { [weak self] runningApps in
             self?.handleWorkspaceStateChanges(runningApps)
         }
@@ -42,24 +56,30 @@ extension AppActivitiesMonitor {
     func startObserveApp(_ app: NSRunningApplication) {
         guard let identifier = app.bundleIdentifier else { return }
 
-        guard !runningAppActiveObs.keys.contains(identifier) else {
+        guard !runningAppActiveObs.keys.contains(app.processIdentifier) else {
             return
         }
+
+        logger.info("[*] startObserveApp: pid: \(app.processIdentifier) bundle: \(app.bundleIdentifier ?? "nil")")
 
         let obs = app.publisher(for: \.isActive).sink { [weak self] isActive in
             self?.handleApplicationActiveChanges(app, isActive)
         }
-        runningAppActiveObs[identifier] = obs
+        runningAppActiveObs[app.processIdentifier] = obs
     }
 }
 
 extension AppActivitiesMonitor {
     func handleWorkspaceStateChanges(_ apps: [NSRunningApplication]) {
-        let newAppIds = apps.compactMap(\.bundleIdentifier)
+        let newAppIds = apps.compactMap(\.processIdentifier)
         let oldAppIds = runningAppActiveObs.keys
 
         let killedAppIds = Set(oldAppIds).subtracting(newAppIds)
-        killedAppIds.forEach { runningAppActiveObs[$0] = nil }
+        killedAppIds.forEach {
+            runningAppActiveObs.removeValue(forKey: $0)
+            runningAppLastActiveTime.removeValue(forKey: $0)
+            logger.info("[*] Remove App Obs. pid: \($0)")
+        }
 
         for app in apps {
             startObserveApp(app)
@@ -69,27 +89,29 @@ extension AppActivitiesMonitor {
     func handleApplicationActiveChanges(_ app: NSRunningApplication, _ isActive: Bool) {
         guard let identifier = app.bundleIdentifier else { return }
 
-        logger.info("\(identifier) - isActive: \(isActive) hasWindow: \(app.hasAnyWindow ?? true)")
+        logger.info("[*] App Active State Changes. pid: \(app.processIdentifier) bundle: \(identifier) isActive: \(isActive)")
+
+        runningAppLastActiveTime[app.processIdentifier] = RunningState(updateAt: Date(), isActive: isActive)
     }
 }
 
 extension AppActivitiesMonitor {
     struct Update: Hashable {
         let appProcessIdentifier: pid_t
-        let lastActiveDate: Date
+        let runningState: RunningState
         let hasAnyWindow: Bool
     }
 
     func updates(idle: TimeInterval) -> any AsyncSequence<Update, Never> {
         AsyncTimerSequence(interval: .seconds(1), clock: .continuous).map { [weak self] instant in
             self?.runningAppLastActiveTime.filter {
-                $0.value.advanced(by: idle) < Date()
-            }.compactMap { (pid: pid_t, value: Date) in
+                !$0.value.isActive && $0.value.updateAt.advanced(by: idle) < Date()
+            }.compactMap { (pid: pid_t, state: RunningState) in
                 guard let app = NSWorkspace.shared.runningApp(by: pid) else { return nil }
 
                 return Update(
                     appProcessIdentifier: app.processIdentifier,
-                    lastActiveDate: value,
+                    runningState: state,
                     hasAnyWindow: app.hasAnyWindow ?? true
                 )
             } ?? []

@@ -9,8 +9,6 @@ import Combine
 import OSLog
 import SwiftUI
 
-let logger = Logger()
-
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     weak var state: AppState?
