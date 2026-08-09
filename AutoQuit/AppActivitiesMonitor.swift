@@ -38,8 +38,11 @@ class AppActivitiesMonitor {
     var workspaceObs: AnyCancellable?
     var runningAppActiveObs: [pid_t: AnyCancellable] = [:]
     var runningAppLastActiveTime: [pid_t: RunningState] = [:]
+    private var isObserving = false
 
     func setup() {
+        guard !isObserving else { return }
+        isObserving = true
         StartObserveApps()
     }
 }
@@ -51,11 +54,10 @@ extension AppActivitiesMonitor {
         workspaceObs = NSWorkspace.shared.publisher(for: \.runningApplications).sink { [weak self] runningApps in
             self?.handleWorkspaceStateChanges(runningApps)
         }
+        handleWorkspaceStateChanges(NSWorkspace.shared.runningApplications)
     }
 
     func startObserveApp(_ app: NSRunningApplication) {
-        guard let identifier = app.bundleIdentifier else { return }
-
         guard !runningAppActiveObs.keys.contains(app.processIdentifier) else {
             return
         }
@@ -87,9 +89,7 @@ extension AppActivitiesMonitor {
     }
 
     func handleApplicationActiveChanges(_ app: NSRunningApplication, _ isActive: Bool) {
-        guard let identifier = app.bundleIdentifier else { return }
-
-        logger.info("[*] App Active State Changes. pid: \(app.processIdentifier) bundle: \(identifier) isActive: \(isActive)")
+        logger.info("[*] App Active State Changes. pid: \(app.processIdentifier) bundle: \(app.bundleIdentifier ?? "nil") isActive: \(isActive)")
 
         runningAppLastActiveTime[app.processIdentifier] = RunningState(updateAt: Date(), isActive: isActive)
     }
@@ -99,22 +99,17 @@ extension AppActivitiesMonitor {
     struct Update: Hashable {
         let appProcessIdentifier: pid_t
         let runningState: RunningState
-        let hasAnyWindow: Bool
     }
 
     func updates(idle: TimeInterval) -> any AsyncSequence<Update, Never> {
-        AsyncTimerSequence(interval: .seconds(1), clock: .continuous).map { [weak self] instant in
+        AsyncTimerSequence(interval: .seconds(1), clock: .continuous).map { [weak self] _ in
             self?.runningAppLastActiveTime.filter {
                 !$0.value.isActive && $0.value.updateAt.advanced(by: idle) < Date()
-            }.compactMap { (pid: pid_t, state: RunningState) in
-                guard let app = NSWorkspace.shared.runningApp(by: pid) else { return nil }
-
-                return Update(
-                    appProcessIdentifier: app.processIdentifier,
-                    runningState: state,
-                    hasAnyWindow: app.hasAnyWindow ?? true
-                )
-            } ?? []
-        }.flatMap { $0.async }.removeDuplicates()
+            } ?? [:]
+        }.removeDuplicates().flatMap { idleStates in
+            idleStates.map { pid, state in
+                Update(appProcessIdentifier: pid, runningState: state)
+            }.async
+        }
     }
 }

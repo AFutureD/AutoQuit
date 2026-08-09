@@ -47,6 +47,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.button?.action = #selector(self.displayMenu)
 
         state?.setup()
+
+        DispatchQueue.main.async { [weak self] in
+            self?.openPreference()
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

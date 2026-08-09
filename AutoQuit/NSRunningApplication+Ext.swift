@@ -8,14 +8,14 @@
 import AppKit
 
 extension NSRunningApplication {
-    /// Returns true if the app owns any non-minimized AX window (visible state doesn’t matter).
+    /// Returns whether the app owns any AX window, or nil when the state cannot be read.
     var hasAnyWindow: Bool? {
         guard AXIsProcessTrusted() else { return nil }
 
         let axApp = AXUIElementCreateApplication(self.processIdentifier)
         var value: CFTypeRef?
         let err = AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &value)
-        guard err == .success, let windows = value as? [AXUIElement], !windows.isEmpty else { return false }
+        guard err == .success, let windows = value as? [AXUIElement] else { return nil }
 
         return !windows.isEmpty
     }

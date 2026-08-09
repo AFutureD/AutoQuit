@@ -16,18 +16,30 @@ class AppState: NSObject, ObservableObject {
     let activitiedMonitor: AppActivitiesMonitor
     let permissions: Permissions
     let applicationManager: ApplicationManager
+    let appRuleStore: AppRuleStore
+    let applicationCatalog: ApplicationCatalog
+
+    @Published private(set) var accessibilityPermissionGranted: Bool
+    private var isSetup = false
 
     override init() {
+        let appRuleStore = AppRuleStore()
         self.anyCancelables = .init()
         self.activitiedMonitor = .init()
         self.permissions = .init()
-        self.applicationManager = .init()
+        self.appRuleStore = appRuleStore
+        self.applicationManager = .init(ruleStore: appRuleStore)
+        self.applicationCatalog = .init()
+        self.accessibilityPermissionGranted = AccessibilityMonitor.hasPermission
     }
 
     func setup() {
+        guard !isSetup else { return }
+        isSetup = true
 
         Task {
             for await ok in permissions.isOK {
+                accessibilityPermissionGranted = ok
                 guard ok else { continue }
 
                 activitiedMonitor.setup()
@@ -36,9 +48,8 @@ class AppState: NSObject, ObservableObject {
 
         Task {
             for await update in activitiedMonitor.updates(idle: 10) {
-                if !update.hasAnyWindow {
-                    applicationManager.shutdown(update.appProcessIdentifier)
-                }
+                guard accessibilityPermissionGranted else { continue }
+                applicationManager.shutdown(update.appProcessIdentifier)
             }
         }
     }

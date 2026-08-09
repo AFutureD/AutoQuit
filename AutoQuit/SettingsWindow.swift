@@ -11,7 +11,7 @@ struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
 
     var body: some Scene {
-        Window("", id: Constants.PreferenceWindowID) {
+        Window("AutoQuit", id: Constants.PreferenceWindowID) {
             ContentView()
                 .frame(minWidth: 825, minHeight: 500)
         }
