@@ -17,10 +17,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract version from tag
+      - name: Validate tag matches Xcode version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          BUILD_SETTINGS="$(xcodebuild -project AutoQuit.xcodeproj \
+            -target AutoQuit \
+            -configuration Release \
+            -showBuildSettings)"
+          MARKETING_VERSION="$(awk -F ' = ' \
+            '/^[[:space:]]*MARKETING_VERSION = / { print $2; exit }' \
+            <<< "$BUILD_SETTINGS")"
+          BUILD_VERSION="$(awk -F ' = ' \
+            '/^[[:space:]]*CURRENT_PROJECT_VERSION = / { print $2; exit }' \
+            <<< "$BUILD_SETTINGS")"
+
+          if [[ -z "$MARKETING_VERSION" || -z "$BUILD_VERSION" ]]; then
+            echo "::error::Unable to read the Xcode version and build number."
+            exit 1
+          fi
+
+          if [[ "$TAG_VERSION" != "$MARKETING_VERSION" || \
+                "$TAG_VERSION" != "$BUILD_VERSION" ]]; then
+            echo "::error::Version mismatch: tag=$TAG_VERSION, Xcode version=$MARKETING_VERSION, Xcode build=$BUILD_VERSION."
+            exit 1
+          fi
+
+          echo "VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"
 
       - name: Import Developer ID certificate
         env:
@@ -48,8 +70,6 @@ jobs:
             -destination "generic/platform=macOS" \
             -archivePath build/AutoQuit.xcarchive \
             archive \
-            MARKETING_VERSION="$VERSION" \
-            CURRENT_PROJECT_VERSION="$VERSION" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Developer ID Application" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
