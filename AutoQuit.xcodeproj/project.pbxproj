@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1982CBB33028515200D0A35E /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 1982CBB23028515200D0A35E /* AGENTS.md */; };
 		1999F5042E81914000B3C6E3 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 1999F5032E81914000B3C6E3 /* AsyncAlgorithms */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1982CBB23028515200D0A35E /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		19FADB602E7D66750032ACD8 /* AutoQuit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AutoQuit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		19FADB6D2E7D66770032ACD8 /* AutoQuitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AutoQuitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		19FADB772E7D66770032ACD8 /* AutoQuitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AutoQuitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,6 +82,7 @@
 		19FADB572E7D66750032ACD8 = {
 			isa = PBXGroup;
 			children = (
+				1982CBB23028515200D0A35E /* AGENTS.md */,
 				19FADB622E7D66750032ACD8 /* AutoQuit */,
 				19FADB702E7D66770032ACD8 /* AutoQuitTests */,
 				19FADB7A2E7D66770032ACD8 /* AutoQuitUITests */,
@@ -221,6 +224,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1982CBB33028515200D0A35E /* AGENTS.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
