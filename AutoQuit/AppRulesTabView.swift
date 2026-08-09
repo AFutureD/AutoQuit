@@ -166,7 +166,10 @@ private struct ApplicationRuleRow: View {
                 .disabled(isSaving)
             }
         }
-        .padding(.vertical, 4)
+        // The row content is always 32 points tall with 4 points of vertical
+        // spacing. Making that invariant explicit avoids NSTableView's costly
+        // automatic-height measurement during the first list layout.
+        .frame(height: 40)
     }
 }
 

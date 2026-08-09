@@ -51,7 +51,7 @@ final class ApplicationCatalog: ObservableObject {
         for root in searchRoots where fileManager.fileExists(atPath: root.path) {
             guard let enumerator = fileManager.enumerator(
                 at: root,
-                includingPropertiesForKeys: [.isApplicationKey],
+                includingPropertiesForKeys: nil,
                 options: [.skipsHiddenFiles, .skipsPackageDescendants]
             ) else { continue }
 
