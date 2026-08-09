@@ -38,6 +38,10 @@ class AppState: NSObject, ObservableObject {
         isSetup = true
 
         Task {
+            await appRuleStore.load()
+        }
+
+        Task {
             for await ok in permissions.isOK {
                 accessibilityPermissionGranted = ok
                 guard ok else { continue }

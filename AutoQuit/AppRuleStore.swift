@@ -1,48 +1,92 @@
 import Combine
 import Foundation
 
+enum AppRuleStoreState: Equatable {
+    case loading
+    case ready
+    case failed(message: String)
+}
+
+struct AppRulePersistenceIssue: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
 @MainActor
 final class AppRuleStore: ObservableObject {
-    @Published private(set) var rules: [String: AppCloseCondition]
+    @Published private(set) var rules: [String: AppCloseCondition] = [:]
+    @Published private(set) var state: AppRuleStoreState = .loading
+    @Published private(set) var savingApplicationIdentifiers: Set<String> = []
+    @Published private(set) var persistenceIssue: AppRulePersistenceIssue?
 
-    private let defaults: UserDefaults
-    private let storageKey = "appCloseConditions"
+    private let persistence: any AppRulePersisting
+    private var isLoading = false
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+    init(persistence: (any AppRulePersisting)? = nil) {
+        self.persistence = persistence ?? CoreDataAppRulePersistence()
+    }
 
-        guard let data = defaults.data(forKey: storageKey),
-              let storedRules = try? JSONDecoder().decode(
-                  [String: AppCloseCondition].self,
-                  from: data
-              )
-        else {
-            self.rules = [:]
-            return
+    func load() async {
+        guard !isLoading, state != .ready else { return }
+
+        isLoading = true
+        state = .loading
+        defer { isLoading = false }
+
+        do {
+            rules = try await persistence.loadRules()
+            state = .ready
+        } catch {
+            rules = [:]
+            state = .failed(
+                message: "无法读取已保存的规则。请检查磁盘空间后重试。"
+            )
         }
-
-        self.rules = storedRules
     }
 
     func condition(for applicationIdentifier: String) -> AppCloseCondition {
-        rules[applicationIdentifier] ?? .doNothing
+        guard state == .ready else { return .doNothing }
+        return rules[applicationIdentifier] ?? .doNothing
+    }
+
+    func isSaving(_ applicationIdentifier: String) -> Bool {
+        savingApplicationIdentifiers.contains(applicationIdentifier)
     }
 
     func setCondition(
         _ condition: AppCloseCondition,
         for applicationIdentifier: String
-    ) {
-        if condition == .doNothing {
-            rules.removeValue(forKey: applicationIdentifier)
-        } else {
-            rules[applicationIdentifier] = condition
+    ) async {
+        guard state == .ready,
+            condition != self.condition(for: applicationIdentifier),
+            savingApplicationIdentifiers.insert(applicationIdentifier).inserted
+        else { return }
+
+        defer {
+            savingApplicationIdentifiers.remove(applicationIdentifier)
         }
 
-        persist()
+        do {
+            try await persistence.persist(
+                condition,
+                for: applicationIdentifier
+            )
+
+            if condition == .doNothing {
+                rules.removeValue(forKey: applicationIdentifier)
+            } else {
+                rules[applicationIdentifier] = condition
+            }
+        } catch {
+            persistenceIssue = AppRulePersistenceIssue(
+                title: "无法保存规则",
+                message: "原来的关闭条件已保留。请重试。"
+            )
+        }
     }
 
-    private func persist() {
-        guard let data = try? JSONEncoder().encode(rules) else { return }
-        defaults.set(data, forKey: storageKey)
+    func dismissPersistenceIssue() {
+        persistenceIssue = nil
     }
 }

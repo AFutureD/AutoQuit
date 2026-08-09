@@ -4,8 +4,15 @@
 
 ## 快速定位
 
+**规则配置**
+
 - [General 一直显示未授权](#permission-not-granted)
+- [APP Rules 无法加载](#app-rules-load-failed)
+- [新的规则没有保存](#app-rule-save-failed)
 - [APP Rules 中找不到目标应用](#app-not-found)
+
+**规则运行**
+
 - [规则已选择，但应用仍在运行](#app-still-running)
 - [关闭设置窗口后 AutoQuit 仍在运行](#autoquit-still-running)
 
@@ -32,6 +39,54 @@
 完成信号：General 显示绿色已授权状态；已有应用规则保持原选择。
 
 相关文档：[General 与运行控制](modules/menu-bar-and-settings.md) / [为一个应用设置自动关闭](journeys/configure-app-auto-quit.md)
+
+<a id="app-rules-load-failed"></a>
+
+## APP Rules 无法加载
+
+受影响目标：查看或编辑应用关闭规则。
+
+用户会看到：“无法加载 APP Rules”、失败说明和“重新加载”，没有可编辑的规则列表。
+
+触发条件：AutoQuit 无法读取当前 Mac 中已保存的规则。
+
+实际影响：加载成功前不能编辑规则，后台对所有应用按“不处理”执行；已保存规则不会被清除。
+
+规则引用：[`APP-R-010`](modules/app-rules.md#app-r-010)
+
+### 恢复步骤
+
+1. 确认当前 Mac 有可用磁盘空间。
+2. 点击“重新加载”。
+3. 等待应用列表和当前条件出现。
+
+完成信号：加载失败状态消失，APP Rules 显示可编辑的应用列表和已保存条件。再次失败时仍保留“重新加载”。
+
+相关文档：[APP Rules](modules/app-rules.md) / [为一个应用设置自动关闭](journeys/configure-app-auto-quit.md)
+
+<a id="app-rule-save-failed"></a>
+
+## 新的规则没有保存
+
+受影响目标：为应用设置新的关闭条件。
+
+用户会看到：保存进度结束后仍显示原条件，并出现“无法保存规则”。
+
+触发条件：AutoQuit 无法把新选择保存到当前 Mac。
+
+实际影响：失败的选择不会生效；该应用继续使用原规则，其他应用不受影响。
+
+规则引用：[`APP-R-011`](modules/app-rules.md#app-r-011)
+
+### 恢复步骤
+
+1. 关闭“无法保存规则”提示。
+2. 确认当前 Mac 有可用磁盘空间。
+3. 从该应用的条件菜单重新选择。
+
+完成信号：保存进度结束后，该行显示新条件且不再出现失败提示。
+
+相关文档：[APP Rules](modules/app-rules.md) / [为一个应用设置自动关闭](journeys/configure-app-auto-quit.md)
 
 <a id="app-not-found"></a>
 

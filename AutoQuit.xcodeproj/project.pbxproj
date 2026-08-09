@@ -36,6 +36,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		19AF5F6730286EAB0018EAE4 /* docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = docs;
+			sourceTree = "<group>";
+		};
 		19FADB622E7D66750032ACD8 /* AutoQuit */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = AutoQuit;
@@ -83,6 +88,7 @@
 			isa = PBXGroup;
 			children = (
 				1982CBB23028515200D0A35E /* AGENTS.md */,
+				19AF5F6730286EAB0018EAE4 /* docs */,
 				19FADB622E7D66750032ACD8 /* AutoQuit */,
 				19FADB702E7D66770032ACD8 /* AutoQuitTests */,
 				19FADB7A2E7D66770032ACD8 /* AutoQuitUITests */,

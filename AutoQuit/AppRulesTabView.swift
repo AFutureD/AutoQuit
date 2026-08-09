@@ -17,6 +17,17 @@ struct AppRulesTabView: View {
         }
     }
 
+    private var persistenceIssue: Binding<AppRulePersistenceIssue?> {
+        Binding(
+            get: { appRuleStore.persistenceIssue },
+            set: { issue in
+                if issue == nil {
+                    appRuleStore.dismissPersistenceIssue()
+                }
+            }
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
@@ -46,20 +57,55 @@ struct AppRulesTabView: View {
             .padding(.top, 24)
             .padding(.bottom, 16)
 
+            rulesContent
+        }
+        .alert(item: persistenceIssue) { issue in
+            Alert(
+                title: Text(issue.title),
+                message: Text(issue.message),
+                dismissButton: .default(Text("好"))
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var rulesContent: some View {
+        switch appRuleStore.state {
+        case .loading:
+            Spacer()
+            ProgressView("正在加载规则…")
+                .frame(maxWidth: .infinity)
+            Spacer()
+        case .failed(let message):
+            ContentUnavailableView {
+                Label("无法加载 APP Rules", systemImage: "externaldrive.badge.exclamationmark")
+            } description: {
+                Text(message)
+            } actions: {
+                Button("重新加载") {
+                    Task { await appRuleStore.load() }
+                }
+            }
+        case .ready:
             List(filteredApplications) { application in
+                let applicationIdentifier = application.ruleIdentifier
+
                 ApplicationRuleRow(
                     application: application,
+                    isSaving: appRuleStore.isSaving(applicationIdentifier),
                     condition: Binding(
                         get: {
                             appRuleStore.condition(
-                                for: application.ruleIdentifier
+                                for: applicationIdentifier
                             )
                         },
                         set: { newCondition in
-                            appRuleStore.setCondition(
-                                newCondition,
-                                for: application.ruleIdentifier
-                            )
+                            Task {
+                                await appRuleStore.setCondition(
+                                    newCondition,
+                                    for: applicationIdentifier
+                                )
+                            }
                         }
                     )
                 )
@@ -84,6 +130,7 @@ struct AppRulesTabView: View {
 
 private struct ApplicationRuleRow: View {
     let application: InstalledApplication
+    let isSaving: Bool
     @Binding var condition: AppCloseCondition
 
     var body: some View {
@@ -101,14 +148,23 @@ private struct ApplicationRuleRow: View {
 
             Spacer(minLength: 16)
 
-            Picker("关闭条件", selection: $condition) {
-                ForEach(AppCloseCondition.allCases) { condition in
-                    Text(condition.title).tag(condition)
+            HStack(spacing: 8) {
+                if isSaving {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("正在保存规则")
                 }
+
+                Picker("关闭条件", selection: $condition) {
+                    ForEach(AppCloseCondition.allCases) { condition in
+                        Text(condition.title).tag(condition)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 150)
+                .disabled(isSaving)
             }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .frame(width: 150)
         }
         .padding(.vertical, 4)
     }
@@ -183,5 +239,5 @@ actor ApplicationIconCache {
         applicationCatalog: ApplicationCatalog(),
         appRuleStore: AppRuleStore()
     )
-        .frame(width: 820, height: 560)
+    .frame(width: 820, height: 560)
 }

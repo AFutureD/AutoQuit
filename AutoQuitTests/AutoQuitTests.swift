@@ -1,4 +1,5 @@
 import AppKit
+import CoreData
 import Foundation
 import Testing
 
@@ -15,21 +16,138 @@ struct AutoQuitTests {
     }
 
     @MainActor
-    @Test func appRulesDefaultToDoNothingAndPersistSelections() throws {
-        let suiteName = "AutoQuitTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+    @Test func appRulesDefaultToDoNothingAndPersistSelections() async throws {
+        let container = CoreDataAppRulePersistence.makeContainer(inMemory: true)
+        let persistence = CoreDataAppRulePersistence(container: container)
+        let store = AppRuleStore(persistence: persistence)
 
-        let store = AppRuleStore(defaults: defaults)
+        await store.load()
+
+        #expect(store.state == .ready)
         #expect(store.condition(for: "com.example.App") == .doNothing)
 
-        store.setCondition(.whenNoWindows, for: "com.example.App")
+        await store.setCondition(.whenNoWindows, for: "com.example.App")
+        await store.setCondition(.always, for: "com.example.OtherApp")
 
-        let restoredStore = AppRuleStore(defaults: defaults)
+        let restoredStore = AppRuleStore(
+            persistence: CoreDataAppRulePersistence(container: container)
+        )
+        await restoredStore.load()
+
         #expect(restoredStore.condition(for: "com.example.App") == .whenNoWindows)
+        #expect(restoredStore.condition(for: "com.example.OtherApp") == .always)
 
-        restoredStore.setCondition(.doNothing, for: "com.example.App")
-        #expect(restoredStore.rules.isEmpty)
+        await restoredStore.setCondition(.always, for: "com.example.App")
+        var records = try container.viewContext.fetch(AppRuleRecord.fetchRequest())
+        #expect(records.count == 2)
+
+        await restoredStore.setCondition(.doNothing, for: "com.example.App")
+        records = try container.viewContext.fetch(AppRuleRecord.fetchRequest())
+        #expect(records.count == 1)
+        #expect(restoredStore.condition(for: "com.example.App") == .doNothing)
+        #expect(restoredStore.condition(for: "com.example.OtherApp") == .always)
+    }
+
+    @MainActor
+    @Test func appRuleStoreSkipsUnchangedConditions() async {
+        let persistence = AppRulePersistenceDouble(
+            rules: ["com.example.App": .always]
+        )
+        let store = AppRuleStore(persistence: persistence)
+
+        await store.load()
+        await store.setCondition(.always, for: "com.example.App")
+
+        #expect(persistence.persistCallCount == 0)
+        #expect(store.condition(for: "com.example.App") == .always)
+    }
+
+    @MainActor
+    @Test func appRuleStoreCanRetryAfterLoadFailure() async {
+        let persistence = AppRulePersistenceDouble(
+            rules: ["com.example.App": .whenNoWindows]
+        )
+        persistence.remainingLoadFailures = 1
+        let store = AppRuleStore(persistence: persistence)
+
+        await store.load()
+        guard case .failed = store.state else {
+            Issue.record("Expected the first load to fail")
+            return
+        }
+        #expect(store.condition(for: "com.example.App") == .doNothing)
+
+        await store.load()
+
+        #expect(store.state == .ready)
+        #expect(store.condition(for: "com.example.App") == .whenNoWindows)
+        #expect(persistence.loadCallCount == 2)
+    }
+
+    @MainActor
+    @Test func appRuleStoreKeepsTheOldConditionWhenSavingFails() async {
+        let persistence = AppRulePersistenceDouble(
+            rules: ["com.example.App": .whenNoWindows]
+        )
+        persistence.shouldFailPersistence = true
+        let store = AppRuleStore(persistence: persistence)
+
+        await store.load()
+        await store.setCondition(.always, for: "com.example.App")
+
+        #expect(store.condition(for: "com.example.App") == .whenNoWindows)
+        #expect(store.savingApplicationIdentifiers.isEmpty)
+        #expect(store.persistenceIssue != nil)
+        #expect(persistence.persistCallCount == 1)
+    }
+
+    @MainActor
+    @Test func appRuleStorePublishesSavingStateWhilePersistenceIsInFlight() async {
+        let persistence = AppRulePersistenceDouble(rules: [:])
+        persistence.persistenceDelay = .milliseconds(100)
+        let store = AppRuleStore(persistence: persistence)
+
+        await store.load()
+        let saveTask = Task {
+            await store.setCondition(.always, for: "com.example.App")
+        }
+        await Task.yield()
+
+        #expect(store.isSaving("com.example.App"))
+
+        await saveTask.value
+        #expect(store.isSaving("com.example.App") == false)
+        #expect(store.condition(for: "com.example.App") == .always)
+    }
+
+    @MainActor
+    @Test func coreDataPersistenceRollsBackAfterSaveFailure() async throws {
+        let container = CoreDataAppRulePersistence.makeContainer(inMemory: true)
+        let context = container.newBackgroundContext()
+        let persistence = CoreDataAppRulePersistence(
+            container: container,
+            context: context
+        )
+        _ = try await persistence.loadRules()
+
+        await context.perform {
+            _ = AppRuleRecord(context: context)
+        }
+
+        var didThrow = false
+        do {
+            try await persistence.persist(.always, for: "com.example.App")
+        } catch {
+            didThrow = true
+        }
+
+        #expect(didThrow)
+        let hasChanges = await context.perform { context.hasChanges }
+        let records = try await context.perform {
+            try context.fetch(AppRuleRecord.fetchRequest())
+        }
+        #expect(hasChanges == false)
+        #expect(records.isEmpty)
     }
 
     @MainActor
@@ -103,6 +221,57 @@ struct AutoQuitTests {
         _ = await cache.icon(for: applicationURL)
         #expect(loader.loadCount == 1)
     }
+}
+
+@MainActor
+private final class AppRulePersistenceDouble: AppRulePersisting {
+    private(set) var loadCallCount = 0
+    private(set) var persistCallCount = 0
+    var remainingLoadFailures = 0
+    var shouldFailPersistence = false
+    var persistenceDelay: Duration?
+
+    private var rules: [String: AppCloseCondition]
+
+    init(rules: [String: AppCloseCondition]) {
+        self.rules = rules
+    }
+
+    func loadRules() async throws -> [String: AppCloseCondition] {
+        loadCallCount += 1
+
+        if remainingLoadFailures > 0 {
+            remainingLoadFailures -= 1
+            throw AppRulePersistenceDoubleError.expectedFailure
+        }
+
+        return rules
+    }
+
+    func persist(
+        _ condition: AppCloseCondition,
+        for applicationIdentifier: String
+    ) async throws {
+        persistCallCount += 1
+
+        if let persistenceDelay {
+            try await Task.sleep(for: persistenceDelay)
+        }
+
+        if shouldFailPersistence {
+            throw AppRulePersistenceDoubleError.expectedFailure
+        }
+
+        if condition == .doNothing {
+            rules.removeValue(forKey: applicationIdentifier)
+        } else {
+            rules[applicationIdentifier] = condition
+        }
+    }
+}
+
+private enum AppRulePersistenceDoubleError: Error {
+    case expectedFailure
 }
 
 private final class ApplicationCatalogLoader: @unchecked Sendable {
