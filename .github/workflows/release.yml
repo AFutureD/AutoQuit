@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  SPARKLE_VERSION: "2.9.5"
+  TEAM_ID: 8GSN8K4KD9
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Import Developer ID certificate
+        env:
+          CERT_P12_BASE64: ${{ secrets.PROD_MACOS_CERTIFICATE_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.PROD_MACOS_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" \
+            -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Archive
+        run: |
+          xcodebuild -project AutoQuit.xcodeproj \
+            -scheme AutoQuit \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -archivePath build/AutoQuit.xcarchive \
+            archive \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$VERSION" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS="--timestamp"
+
+      - name: Export
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/AutoQuit.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/export
+
+      - name: Notarize app and staple
+        env:
+          ASC_KEY_P8: ${{ secrets.APPSTORE_CONNECT_API_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+        run: |
+          echo "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/export/AutoQuit.app "$RUNNER_TEMP/AutoQuit-notarize.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/AutoQuit-notarize.zip" \
+            --key "$RUNNER_TEMP/AuthKey.p8" \
+            --key-id "$ASC_KEY_ID" \
+            --issuer "$ASC_ISSUER_ID" \
+            --wait
+          xcrun stapler staple build/export/AutoQuit.app
+
+      - name: Package zip for Sparkle
+        run: |
+          mkdir -p archives
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/export/AutoQuit.app "archives/AutoQuit-$VERSION.zip"
+
+      - name: Package, notarize and staple DMG
+        env:
+          ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+        run: |
+          mkdir -p dist dmg-root
+          cp -R build/export/AutoQuit.app dmg-root/
+          ln -s /Applications dmg-root/Applications
+          hdiutil create -fs APFS -format ULFO -volname AutoQuit \
+            -srcfolder dmg-root "dist/AutoQuit-$VERSION.dmg"
+          codesign --force --sign "Developer ID Application" --timestamp \
+            "dist/AutoQuit-$VERSION.dmg"
+          xcrun notarytool submit "dist/AutoQuit-$VERSION.dmg" \
+            --key "$RUNNER_TEMP/AuthKey.p8" \
+            --key-id "$ASC_KEY_ID" \
+            --issuer "$ASC_ISSUER_ID" \
+            --wait
+          xcrun stapler staple "dist/AutoQuit-$VERSION.dmg"
+
+      - name: Verify signatures
+        run: |
+          codesign --verify --deep --strict --verbose=2 build/export/AutoQuit.app
+          spctl --assess -vv --type execute build/export/AutoQuit.app
+          xcrun stapler validate build/export/AutoQuit.app
+          xcrun stapler validate "dist/AutoQuit-$VERSION.dmg"
+
+      - name: Download Sparkle tools
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz"
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
+
+      - name: Generate appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          # 拉取上一版 appcast 以保留历史条目;首个版本时容忍 404。
+          curl -fsSL -o archives/appcast.xml \
+            "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/appcast.xml" || true
+          echo "$SPARKLE_ED_PRIVATE_KEY" | "$RUNNER_TEMP/sparkle/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/" \
+            --link "https://github.com/$GITHUB_REPOSITORY" \
+            --maximum-versions 5 \
+            -o archives/appcast.xml \
+            ./archives
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "AutoQuit $VERSION" \
+            --generate-notes \
+            "archives/AutoQuit-$VERSION.zip" \
+            "dist/AutoQuit-$VERSION.dmg" \
+            archives/appcast.xml
