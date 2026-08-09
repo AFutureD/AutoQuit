@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
+    @ObservedObject var updaterViewModel: UpdaterViewModel
 
     var body: some Scene {
         Window("AutoQuit", id: Constants.PreferenceWindowID) {
@@ -20,5 +21,6 @@ struct SettingsWindow: Scene {
         .restorationBehavior(.disabled)
         .windowResizability(.contentSize)
         .environmentObject(appState)
+        .environmentObject(updaterViewModel)
     }
 }

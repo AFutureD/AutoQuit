@@ -7,6 +7,7 @@
 
 import Combine
 import OSLog
+import Sparkle
 import SwiftUI
 
 @MainActor
@@ -15,6 +16,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     var statusItem: NSStatusItem?
 
+    private(set) lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: self
+    )
+
+    private(set) lazy var updaterViewModel = UpdaterViewModel(
+        updater: updaterController.updater
+    )
+
     var menu: NSMenu {
         let menu = NSMenu()
 
@@ -22,6 +33,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSMenuItem(title: "AutoQuit", action: nil, keyEquivalent: ""),
             NSMenuItem.separator(),
             NSMenuItem(title: "Preferences", action: #selector(self.openPreference), keyEquivalent: ""),
+            {
+                let item = NSMenuItem(
+                    title: "Check for Updates…",
+                    action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+                    keyEquivalent: ""
+                )
+                item.target = updaterController
+                return item
+            }(),
             NSMenuItem.separator(),
             NSMenuItem(
                 title: "Quit",
@@ -36,6 +56,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        _ = updaterController
+
         let wasLaunchedAtLogin = state?.wasLaunchedAtLogin == true
         let shouldOpenPreferences = Self.shouldOpenPreferences(
             wasLaunchedAtLogin: wasLaunchedAtLogin
@@ -90,6 +112,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+extension AppDelegate: SPUStandardUserDriverDelegate {
+    var supportsGentleScheduledUpdateReminders: Bool { true }
+
+    func standardUserDriverWillHandleShowingUpdate(
+        _ handleShowingUpdate: Bool,
+        forUpdate update: SUAppcastItem,
+        state: SPUUserUpdateState
+    ) {
+        // 常驻 accessory 模式时更新窗口会被压在其他应用后面,先切回前台再展示。
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
 @main
 struct AutoQuitApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -101,6 +137,9 @@ struct AutoQuitApp: App {
     }
 
     var body: some Scene {
-        SettingsWindow(appState: appState)
+        SettingsWindow(
+            appState: appState,
+            updaterViewModel: appDelegate.updaterViewModel
+        )
     }
 }

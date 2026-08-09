@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1982CBB33028515200D0A35E /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 1982CBB23028515200D0A35E /* AGENTS.md */; };
 		1999F5042E81914000B3C6E3 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 1999F5032E81914000B3C6E3 /* AsyncAlgorithms */; };
+		19A1C0032E90A00000000003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 19A1C0022E90A00000000002 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +65,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1999F5042E81914000B3C6E3 /* AsyncAlgorithms in Frameworks */,
+				19A1C0032E90A00000000003 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +129,7 @@
 			name = AutoQuit;
 			packageProductDependencies = (
 				1999F5032E81914000B3C6E3 /* AsyncAlgorithms */,
+				19A1C0022E90A00000000002 /* Sparkle */,
 			);
 			productName = AutoQuit;
 			productReference = 19FADB602E7D66750032ACD8 /* AutoQuit.app */;
@@ -212,6 +215,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				1999F5022E81914000B3C6E3 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				19A1C0012E90A00000000001 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 19FADB612E7D66750032ACD8 /* Products */;
@@ -426,6 +430,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AutoQuit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -460,6 +465,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AutoQuit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -614,6 +620,14 @@
 				minimumVersion = 1.0.4;
 			};
 		};
+		19A1C0012E90A00000000001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -621,6 +635,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1999F5022E81914000B3C6E3 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
 			productName = AsyncAlgorithms;
+		};
+		19A1C0022E90A00000000002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 19A1C0012E90A00000000001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

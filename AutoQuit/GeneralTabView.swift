@@ -1,7 +1,9 @@
+import Sparkle
 import SwiftUI
 
 struct GeneralTabView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var updaterViewModel: UpdaterViewModel
 
     var body: some View {
         ScrollView {
@@ -91,6 +93,37 @@ struct GeneralTabView: View {
                     }
                     .padding(6)
                 }
+
+                GroupBox {
+                    HStack(spacing: 14) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.title2)
+                            .foregroundStyle(Color.secondary)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("软件更新")
+                                .font(.headline)
+                            Text("当前版本 \(updaterViewModel.currentVersion)，开启后自动检查并提醒新版本。")
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 10) {
+                            Button("立即检查") {
+                                updaterViewModel.checkForUpdates()
+                            }
+                            .disabled(!updaterViewModel.canCheckForUpdates)
+
+                            Toggle(
+                                "自动检查更新",
+                                isOn: $updaterViewModel.automaticallyChecksForUpdates
+                            )
+                            .labelsHidden()
+                        }
+                    }
+                    .padding(6)
+                }
             }
             .frame(maxWidth: 720, alignment: .leading)
             .padding(28)
@@ -101,5 +134,14 @@ struct GeneralTabView: View {
 #Preview {
     GeneralTabView()
         .environmentObject(AppState())
+        .environmentObject(
+            UpdaterViewModel(
+                updater: SPUStandardUpdaterController(
+                    startingUpdater: false,
+                    updaterDelegate: nil,
+                    userDriverDelegate: nil
+                ).updater
+            )
+        )
         .frame(width: 760, height: 500)
 }
