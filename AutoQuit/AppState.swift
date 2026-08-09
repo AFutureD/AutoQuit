@@ -8,9 +8,11 @@
 import Combine
 import Foundation
 import ServiceManagement
+import OSLog
 
 @MainActor
-class AppState: NSObject, ObservableObject {
+class AppState: NSObject, ObservableObject, LogCarrier {
+    static let category: String = "AppState"
 
     var anyCancelables: Set<AnyCancellable>
 
@@ -19,12 +21,12 @@ class AppState: NSObject, ObservableObject {
     let applicationManager: ApplicationManager
     let appRuleStore: AppRuleStore
     let applicationCatalog: ApplicationCatalog
+    let loginItemController: LoginItemController
 
     @Published private(set) var accessibilityPermissionGranted: Bool
-    @Published private(set) var loginItemStatus: SMAppService.Status
+    @Published var launchAtLoginItemEnabled: Bool
 
-    private let loginItemController: LoginItemController
-    private var isSetup = false
+    private var setupLoginItemObs: AnyCancellable?
 
     override init() {
         let appRuleStore = AppRuleStore()
@@ -37,11 +39,12 @@ class AppState: NSObject, ObservableObject {
         self.applicationCatalog = .init()
         self.accessibilityPermissionGranted = AccessibilityMonitor.hasPermission
         self.loginItemController = loginItemController
-        self.loginItemStatus = loginItemController.status
+        self.launchAtLoginItemEnabled = loginItemController.status == .enabled
 
         super.init()
     }
 
+    private var isSetup = false
     func setup() {
         guard !isSetup else { return }
         isSetup = true
@@ -60,8 +63,8 @@ class AppState: NSObject, ObservableObject {
         }
 
         Task {
-            for await status in loginItemController.updates() {
-                loginItemStatus = status
+            for await status in loginItemController.updates().dropFirst() {
+                self.launchAtLoginItemEnabled = status == .enabled
             }
         }
 
@@ -71,6 +74,14 @@ class AppState: NSObject, ObservableObject {
                 applicationManager.shutdown(update.appProcessIdentifier)
             }
         }
+
+        setupLoginItemObs = self.$launchAtLoginItemEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enable in
+                self?.loginItemController.setEnabled(enable)
+            }
     }
 }
 
@@ -79,7 +90,7 @@ class AppState: NSObject, ObservableObject {
 extension AppState {
 
     var loginItemRequiresApproval: Bool {
-        loginItemStatus == .requiresApproval
+        loginItemController.status == .requiresApproval
     }
 
     func openLoginItemSettings() {
@@ -88,13 +99,5 @@ extension AppState {
 
     var wasLaunchedAtLogin: Bool {
         loginItemController.wasLaunchedAtLogin
-    }
-
-    var launchAtLoginEnabled: Bool {
-        loginItemStatus == .enabled
-    }
-
-    func setLaunchAtLoginEnabled(_ isEnabled: Bool) {
-        loginItemController.setEnabled(isEnabled)
     }
 }

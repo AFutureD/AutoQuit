@@ -84,10 +84,7 @@ struct GeneralTabView: View {
 
                             Toggle(
                                 "开机启动",
-                                isOn: Binding(
-                                    get: { appState.launchAtLoginEnabled },
-                                    set: { appState.setLaunchAtLoginEnabled($0) }
-                                )
+                                isOn: $appState.launchAtLoginItemEnabled
                             )
                             .labelsHidden()
                         }
