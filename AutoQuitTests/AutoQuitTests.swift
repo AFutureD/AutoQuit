@@ -7,6 +7,12 @@ import Testing
 
 struct AutoQuitTests {
 
+    @MainActor
+    @Test func launchAtLoginDoesNotOpenPreferences() {
+        #expect(AppDelegate.shouldOpenPreferences(wasLaunchedAtLogin: false))
+        #expect(AppDelegate.shouldOpenPreferences(wasLaunchedAtLogin: true) == false)
+    }
+
     @Test func closeConditionsMatchTheirDocumentedBehavior() {
         #expect(AppCloseCondition.doNothing.shouldQuit(hasAnyWindow: false) == false)
         #expect(AppCloseCondition.always.shouldQuit(hasAnyWindow: true) == true)

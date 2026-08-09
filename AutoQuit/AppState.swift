@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import ServiceManagement
 
 @MainActor
 class AppState: NSObject, ObservableObject {
@@ -20,10 +21,14 @@ class AppState: NSObject, ObservableObject {
     let applicationCatalog: ApplicationCatalog
 
     @Published private(set) var accessibilityPermissionGranted: Bool
+    @Published private(set) var loginItemStatus: SMAppService.Status
+
+    private let loginItemController: LoginItemController
     private var isSetup = false
 
     override init() {
         let appRuleStore = AppRuleStore()
+        let loginItemController = LoginItemController()
         self.anyCancelables = .init()
         self.activitiedMonitor = .init()
         self.permissions = .init()
@@ -31,6 +36,10 @@ class AppState: NSObject, ObservableObject {
         self.applicationManager = .init(ruleStore: appRuleStore)
         self.applicationCatalog = .init()
         self.accessibilityPermissionGranted = AccessibilityMonitor.hasPermission
+        self.loginItemController = loginItemController
+        self.loginItemStatus = loginItemController.status
+
+        super.init()
     }
 
     func setup() {
@@ -51,10 +60,41 @@ class AppState: NSObject, ObservableObject {
         }
 
         Task {
+            for await status in loginItemController.updates() {
+                loginItemStatus = status
+            }
+        }
+
+        Task {
             for await update in activitiedMonitor.updates(idle: 10) {
                 guard accessibilityPermissionGranted else { continue }
                 applicationManager.shutdown(update.appProcessIdentifier)
             }
         }
+    }
+}
+
+// MARK: AppState + loginItem
+
+extension AppState {
+
+    var loginItemRequiresApproval: Bool {
+        loginItemStatus == .requiresApproval
+    }
+
+    func openLoginItemSettings() {
+        loginItemController.openSystemSettingsLoginItems()
+    }
+
+    var wasLaunchedAtLogin: Bool {
+        loginItemController.wasLaunchedAtLogin
+    }
+
+    var launchAtLoginEnabled: Bool {
+        loginItemStatus == .enabled
+    }
+
+    func setLaunchAtLoginEnabled(_ isEnabled: Bool) {
+        loginItemController.setEnabled(isEnabled)
     }
 }

@@ -9,7 +9,7 @@ struct GeneralTabView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("General")
                         .font(.largeTitle.bold())
-                    Text("检查 AutoQuit 正常工作所需的系统权限。")
+                    Text("管理 AutoQuit 的系统权限与启动方式。")
                         .foregroundStyle(.secondary)
                 }
 
@@ -43,6 +43,53 @@ struct GeneralTabView: View {
                                 appState.permissions.accessibility
                                     .checkPermissionAndPromptIfNeeded()
                             }
+                        }
+                    }
+                    .padding(6)
+                }
+
+                GroupBox {
+                    HStack(spacing: 14) {
+                        Image(
+                            systemName: appState.loginItemRequiresApproval
+                                ? "exclamationmark.triangle.fill"
+                                : "power"
+                        )
+                        .font(.title2)
+                        .foregroundStyle(
+                            appState.loginItemRequiresApproval
+                                ? Color.orange
+                                : Color.secondary
+                        )
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("开机启动")
+                                .font(.headline)
+                            Text(
+                                appState.loginItemRequiresApproval
+                                    ? "需要在 macOS 登录项设置中允许 AutoQuit。"
+                                    : "登录 Mac 后自动启动 AutoQuit。"
+                            )
+                            .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 10) {
+                            if appState.loginItemRequiresApproval {
+                                Button("打开登录项设置") {
+                                    appState.openLoginItemSettings()
+                                }
+                            }
+
+                            Toggle(
+                                "开机启动",
+                                isOn: Binding(
+                                    get: { appState.launchAtLoginEnabled },
+                                    set: { appState.setLaunchAtLoginEnabled($0) }
+                                )
+                            )
+                            .labelsHidden()
                         }
                     }
                     .padding(6)

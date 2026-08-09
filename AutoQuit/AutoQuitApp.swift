@@ -36,6 +36,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let wasLaunchedAtLogin = state?.wasLaunchedAtLogin == true
+        let shouldOpenPreferences = Self.shouldOpenPreferences(
+            wasLaunchedAtLogin: wasLaunchedAtLogin
+        )
+
         statusItem = NSStatusBar.system.statusItem(
             withLength: NSStatusItem.squareLength
         )
@@ -48,9 +53,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         state?.setup()
 
-        DispatchQueue.main.async { [weak self] in
-            self?.openPreference()
+        if wasLaunchedAtLogin {
+            NSApp.setActivationPolicy(.accessory)
+        } else if shouldOpenPreferences {
+            DispatchQueue.main.async { [weak self] in
+                self?.openPreference()
+            }
         }
+    }
+
+    static func shouldOpenPreferences(wasLaunchedAtLogin: Bool) -> Bool {
+        !wasLaunchedAtLogin
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

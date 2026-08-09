@@ -17,9 +17,9 @@
 ## 实际入口
 
 - **主入口**：启动 AutoQuit > 设置窗口。
-- **替代入口**：AutoQuit 已在菜单栏运行时，菜单栏图标 > “Preferences”。
+- **替代入口**：AutoQuit 已在菜单栏运行时，菜单栏图标 > “Preferences”；已开启“开机启动”时，登录 Mac 后先由系统自动启动，再从菜单栏选择“Preferences”。
 - **到达状态**：General 显示权限状态，尚未改变应用规则。
-- **规则引用**：[`GEN-R-001`](../modules/menu-bar-and-settings.md#gen-r-001)
+- **规则引用**：[`GEN-R-001`](../modules/menu-bar-and-settings.md#gen-r-001)、[`GEN-R-005`](../modules/menu-bar-and-settings.md#gen-r-005)、[`GEN-R-009`](../modules/menu-bar-and-settings.md#gen-r-009)
 
 ## 主路径
 

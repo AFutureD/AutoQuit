@@ -16,6 +16,11 @@
 - [规则已选择，但应用仍在运行](#app-still-running)
 - [关闭设置窗口后 AutoQuit 仍在运行](#autoquit-still-running)
 
+**开机启动**
+
+- [开机启动等待系统批准](#launch-at-login-not-enabled)
+- [开机启动开关无法保持开启](#launch-at-login-failed)
+
 <a id="permission-not-granted"></a>
 
 ## General 一直显示未授权
@@ -160,6 +165,53 @@
 
 相关文档：[General 与运行控制](modules/menu-bar-and-settings.md)
 
+<a id="launch-at-login-not-enabled"></a>
+
+## 开机启动等待系统批准
+
+受影响目标：让 AutoQuit 在登录 Mac 后自动运行。
+
+用户会看到：“开机启动”开关显示关闭，并出现需要在 macOS 登录项设置中允许 AutoQuit 的说明和“打开登录项设置”。
+
+触发条件：macOS 要求用户批准 AutoQuit，包括首次启用未获批准，或用户之后在系统登录项设置中撤销允许。
+
+实际影响：后续登录不会自动启动 AutoQuit；当前运行、权限和应用规则不受影响。
+
+规则引用：[`GEN-R-007`](modules/menu-bar-and-settings.md#gen-r-007)
+
+### 恢复步骤
+
+1. 点击“打开登录项设置”。
+2. 在 macOS 登录项设置中允许 AutoQuit。
+3. 返回 AutoQuit，确认“开机启动”显示开启。
+
+完成信号：开关显示开启；最终自动启动要在下一次登录 Mac 后确认。
+
+相关文档：[General 与运行控制](modules/menu-bar-and-settings.md) / [让 AutoQuit 登录后自动运行](journeys/start-autoquit-at-login.md)
+
+<a id="launch-at-login-failed"></a>
+
+## 开机启动开关无法保持开启
+
+受影响目标：让 AutoQuit 在登录 Mac 后自动运行。
+
+用户会看到：打开“开机启动”后，开关恢复为关闭，且没有系统批准提示或错误详情。
+
+触发条件：macOS 没有启用 AutoQuit 登录项，也没有返回需要批准的状态。
+
+实际影响：后续登录不会自动启动 AutoQuit；当前运行、权限和应用规则不受影响。
+
+规则引用：[`GEN-R-007`](modules/menu-bar-and-settings.md#gen-r-007)
+
+### 恢复步骤
+
+1. 再次打开“开机启动”。
+2. 确认开关保持开启。
+
+完成信号：开关显示开启；反复恢复为关闭时，当前没有错误详情或进一步恢复入口。
+
+相关文档：[General 与运行控制](modules/menu-bar-and-settings.md) / [让 AutoQuit 登录后自动运行](journeys/start-autoquit-at-login.md)
+
 ## 什么时候联系反馈
 
-当前没有应用内反馈入口。完成对应恢复步骤后仍失败时，保留目标应用名称、所选条件、General 权限状态和可见结果，避免包含文档内容或其他敏感信息。
+当前没有应用内反馈入口。完成对应恢复步骤后仍失败时，保留相关目标、General 权限状态、开机启动开关状态和可见结果，避免包含文档内容或其他敏感信息。

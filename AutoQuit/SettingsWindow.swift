@@ -16,6 +16,8 @@ struct SettingsWindow: Scene {
                 .frame(minWidth: 825, minHeight: 500)
         }
         .commandsRemoved()
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
         .windowResizability(.contentSize)
         .environmentObject(appState)
     }
