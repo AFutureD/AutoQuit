@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1982CBB33028515200D0A35E /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 1982CBB23028515200D0A35E /* AGENTS.md */; };
 		1999F5042E81914000B3C6E3 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 1999F5032E81914000B3C6E3 /* AsyncAlgorithms */; };
+		19C5A0023048A00000A17001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 19C5A0033048A00000A17001 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,6 +36,16 @@
 		19FADB772E7D66770032ACD8 /* AutoQuitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AutoQuitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		19C5A0043048A00000A17001 /* Exceptions for "AutoQuit" folder in "AutoQuit" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 19FADB5F2E7D66750032ACD8 /* AutoQuit */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		19AF5F6730286EAB0018EAE4 /* docs */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -43,6 +54,9 @@
 		};
 		19FADB622E7D66750032ACD8 /* AutoQuit */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				19C5A0043048A00000A17001 /* Exceptions for "AutoQuit" folder in "AutoQuit" target */,
+			);
 			path = AutoQuit;
 			sourceTree = "<group>";
 		};
@@ -64,6 +78,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1999F5042E81914000B3C6E3 /* AsyncAlgorithms in Frameworks */,
+				19C5A0023048A00000A17001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +142,7 @@
 			name = AutoQuit;
 			packageProductDependencies = (
 				1999F5032E81914000B3C6E3 /* AsyncAlgorithms */,
+				19C5A0033048A00000A17001 /* Sparkle */,
 			);
 			productName = AutoQuit;
 			productReference = 19FADB602E7D66750032ACD8 /* AutoQuit.app */;
@@ -212,6 +228,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				1999F5022E81914000B3C6E3 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				19C5A0013048A00000A17001 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 19FADB612E7D66750032ACD8 /* Products */;
@@ -417,7 +434,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -426,10 +442,8 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = AutoQuit;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AutoQuit/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -452,7 +466,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -461,10 +474,8 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = AutoQuit;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AutoQuit/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -616,6 +627,14 @@
 				minimumVersion = 1.0.4;
 			};
 		};
+		19C5A0013048A00000A17001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -623,6 +642,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1999F5022E81914000B3C6E3 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
 			productName = AsyncAlgorithms;
+		};
+		19C5A0033048A00000A17001 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 19C5A0013048A00000A17001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

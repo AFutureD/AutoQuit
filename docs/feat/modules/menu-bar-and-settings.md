@@ -1,14 +1,14 @@
 # General 与运行控制
 
-用户可以在 General 查看辅助功能权限是否可用，并选择是否在登录 Mac 后自动启动；关闭设置窗口后，AutoQuit 继续在菜单栏运行，直到用户选择“Quit”。
+用户可以在 General 查看辅助功能权限是否可用，并选择是否在登录 Mac 后自动启动；关闭设置窗口后，AutoQuit 继续在菜单栏运行。菜单栏同时提供重新打开设置、检查更新和退出入口。
 
 ## 模块概览
 
-- **实际入口**：手动启动 AutoQuit > “General”；关闭设置窗口后：菜单栏窗口形图标 > “Preferences”或“Quit”。
+- **实际入口**：手动启动 AutoQuit > “General”；关闭设置窗口后：菜单栏窗口形图标 > “Preferences”、“Check for Updates…”或“Quit”。
 - **可触达条件**：AutoQuit 正在运行。
 - **前置条件**：查看状态、打开设置和退出不要求辅助功能权限；执行应用规则需要授权。
-- **主要结果**：用户可以确认权限、发起系统授权、控制开机启动、重新打开设置或停止 AutoQuit。
-- **相关旅程**：[为一个应用设置自动关闭](../journeys/configure-app-auto-quit.md)、[让 AutoQuit 登录后自动运行](../journeys/start-autoquit-at-login.md)
+- **主要结果**：用户可以确认权限、发起系统授权、控制开机启动、重新打开设置、进入软件更新或停止 AutoQuit。
+- **相关旅程**：[为一个应用设置自动关闭](../journeys/configure-app-auto-quit.md)、[让 AutoQuit 登录后自动运行](../journeys/start-autoquit-at-login.md)、[将 AutoQuit 更新到新版本](../journeys/update-autoquit.md)
 
 ## 用户目标
 
@@ -94,6 +94,8 @@ General 持续展示辅助功能权限状态。未授权时出现“请求权限
 
 关闭设置窗口不停止 AutoQuit。“Quit”不经二次确认，立即停止后台检查。
 
+菜单栏中的“Check for Updates…”进入[软件更新](software-updates.md)，不改变辅助功能权限、开机启动选择或应用规则。
+
 ### 控制开机启动
 
 General 的“开机启动”开关反映 macOS 当前保存的登录项状态。开启后由 macOS 在用户登录时启动 AutoQuit；关闭后当前实例继续运行，但后续登录不再自动启动。系统要求批准时，General 提供前往登录项设置的入口，并在用户返回 AutoQuit 后刷新状态。
@@ -132,13 +134,13 @@ General 的“开机启动”开关反映 macOS 当前保存的登录项状态�
 - **结果摘要**：打开 macOS 登录项设置；用户返回 AutoQuit 后，General 刷新开关状态。
 - **规则引用**：[`GEN-R-007`](#gen-r-007)
 
-### “Preferences”与“Quit”
+### “Preferences”、“Check for Updates…”与“Quit”
 
-- **用户用途**：重新打开设置或停止 AutoQuit。
+- **用户用途**：重新打开设置、检查软件更新或停止 AutoQuit。
 - **选择方式**：菜单栏菜单项。
 - **出现位置**：菜单栏窗口形图标展开后的菜单。
-- **结果摘要**：“Preferences”打开设置；“Quit”立即退出。
-- **规则引用**：[`GEN-R-005`](#gen-r-005)、[`GEN-R-006`](#gen-r-006)
+- **结果摘要**：“Preferences”打开设置；“Check for Updates…”开始检查发布版本；“Quit”立即退出。
+- **规则引用**：[`GEN-R-005`](#gen-r-005)、[`UPD-R-001`](software-updates.md#upd-r-001)、[`GEN-R-006`](#gen-r-006)
 
 ## 规则
 
@@ -248,5 +250,7 @@ General 的“开机启动”开关反映 macOS 当前保存的登录项状态�
 - [功能全景](../index.md)
 - [为一个应用设置自动关闭](../journeys/configure-app-auto-quit.md)
 - [让 AutoQuit 登录后自动运行](../journeys/start-autoquit-at-login.md)
+- [将 AutoQuit 更新到新版本](../journeys/update-autoquit.md)
+- [软件更新](software-updates.md)
 - [业务数据结构与流转](../data-flows.md)
 - [用户摩擦点与恢复路径](../friction-points.md)

@@ -1,0 +1,195 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Sign, notarize, and publish
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      APPLE_TEAM_ID: 8GSN8K4KD9
+      APP_STORE_CONNECT_API_KEY_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8_BASE64 }}
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+      SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag and secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH, for example v1.2.3."
+            exit 1
+          fi
+
+          missing=0
+          for name in \
+            APP_STORE_CONNECT_API_KEY_P8_BASE64 \
+            APP_STORE_CONNECT_API_KEY_ID \
+            APP_STORE_CONNECT_API_KEY_ISSUER_ID \
+            SPARKLE_PRIVATE_ED_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing GitHub Actions secret: $name"
+              missing=1
+            fi
+          done
+          [[ "$missing" -eq 0 ]]
+
+          version="${GITHUB_REF_NAME#v}"
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$version" >> "$GITHUB_ENV"
+
+      - name: Select Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          swift --version
+
+      - name: Prepare App Store Connect API key
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api_key_path="$RUNNER_TEMP/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8"
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$api_key_path" >> "$GITHUB_ENV"
+          printf '%s' "$APP_STORE_CONNECT_API_KEY_P8_BASE64" \
+            | base64 --decode -o "$api_key_path"
+          chmod 600 "$api_key_path"
+          openssl pkey -in "$api_key_path" -check -noout
+
+      - name: Archive and export Developer ID app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive_path="$RUNNER_TEMP/AutoQuit.xcarchive"
+          export_path="$RUNNER_TEMP/export"
+
+          xcodebuild \
+            -project AutoQuit.xcodeproj \
+            -scheme AutoQuit \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -archivePath "$archive_path" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$RELEASE_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$APP_STORE_CONNECT_API_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_KEY_ISSUER_ID" \
+            archive
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$archive_path" \
+            -exportPath "$export_path" \
+            -exportOptionsPlist Config/ExportOptions-DeveloperID.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$APP_STORE_CONNECT_API_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_KEY_ISSUER_ID"
+
+          app_path="$export_path/AutoQuit.app"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign -dvvv --entitlements :- "$app_path"
+
+          echo "APP_PATH=$app_path" >> "$GITHUB_ENV"
+
+      - name: Notarize and staple
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          notarization_zip="$RUNNER_TEMP/AutoQuit-notarization.zip"
+          ditto -c -k --keepParent "$APP_PATH" "$notarization_zip"
+
+          xcrun notarytool submit "$notarization_zip" \
+            --key "$APP_STORE_CONNECT_API_KEY_PATH" \
+            --key-id "$APP_STORE_CONNECT_API_KEY_ID" \
+            --issuer "$APP_STORE_CONNECT_API_KEY_ISSUER_ID" \
+            --wait
+
+          xcrun stapler staple "$APP_PATH"
+          xcrun stapler validate "$APP_PATH"
+          spctl -a -vv --type execute "$APP_PATH"
+
+      - name: Build Sparkle appcast
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_dir="$GITHUB_WORKSPACE/build/release"
+          archive_name="AutoQuit-$RELEASE_VERSION.zip"
+          archive_path="$release_dir/$archive_name"
+          mkdir -p "$release_dir"
+          ditto -c -k --keepParent "$APP_PATH" "$archive_path"
+
+          generate_appcast="$(find "$HOME/Library/Developer/Xcode/DerivedData" \
+            -type f \
+            -path '*/artifacts/sparkle/Sparkle/bin/generate_appcast' \
+            -print \
+            -quit)"
+          if [[ -z "$generate_appcast" ]]; then
+            echo "Sparkle generate_appcast tool was not found."
+            exit 1
+          fi
+
+          printf '%s\n' "$SPARKLE_PRIVATE_ED_KEY" \
+            | "$generate_appcast" \
+                --ed-key-file - \
+                --download-url-prefix \
+                  "https://github.com/AFutureD/AutoQuit/releases/download/$GITHUB_REF_NAME/" \
+                --link "https://github.com/AFutureD/AutoQuit" \
+                --maximum-versions 1 \
+                --maximum-deltas 0 \
+                -o "$release_dir/appcast.xml" \
+                "$release_dir"
+
+          xmllint --noout "$release_dir/appcast.xml"
+          rg -q 'sparkle:edSignature=' "$release_dir/appcast.xml"
+          rg -q "$archive_name" "$release_dir/appcast.xml"
+
+          echo "RELEASE_ARCHIVE=$archive_path" >> "$GITHUB_ENV"
+          echo "APPCAST_PATH=$release_dir/appcast.xml" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            "$RELEASE_ARCHIVE#AutoQuit $RELEASE_VERSION" \
+            "$APPCAST_PATH#Sparkle appcast" \
+            --verify-tag \
+            --generate-notes \
+            --title "AutoQuit $RELEASE_VERSION"
+
+      - name: Remove temporary API key
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${APP_STORE_CONNECT_API_KEY_PATH:-}" \
+              && -f "$APP_STORE_CONNECT_API_KEY_PATH" ]]; then
+            unlink "$APP_STORE_CONNECT_API_KEY_PATH"
+          fi

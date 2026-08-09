@@ -2,7 +2,7 @@
 
 > 适用版本：AutoQuit 1.0；macOS 26.0 及以上；基于 2026-08-09 的当前构建与运行行为。
 
-AutoQuit 让用户为 Mac 中的应用分别设置关闭条件，并可选择在登录 Mac 后自动启动。应用离开前台超过 10 秒后，AutoQuit 按已保存的规则决定不处理、请求关闭，或仅在没有窗口时请求关闭。
+AutoQuit 让用户为 Mac 中的应用分别设置关闭条件，可选择在登录 Mac 后自动启动，并能从菜单栏检查和安装新版本。应用离开前台超过 10 秒后，AutoQuit 按已保存的规则决定不处理、请求关闭，或仅在没有窗口时请求关闭。
 
 ## 立即开始
 
@@ -35,10 +35,21 @@ AutoQuit 让用户为 Mac 中的应用分别设置关闭条件，并可选择在
 
 [查看 APP Rules 详情](modules/app-rules.md)
 
+### 软件更新
+
+用户目标：确认是否有新版 AutoQuit，并在 App 内完成可信更新。
+
+入口与前置条件：菜单栏窗口形图标 > “Check for Updates…”；首个正式版本成功发布后，需要网络可访问 GitHub Releases，且发布版本包含有效更新信息和签名。
+
+该模块使用 Sparkle 检查最新发布版本。没有新版时报告当前已是最新；有新版时显示更新窗口并允许用户继续安装；检查或验证失败不会替换当前版本。
+
+[查看软件更新详情](modules/software-updates.md)
+
 ## 主要用户旅程
 
 - [为一个应用设置自动关闭](journeys/configure-app-auto-quit.md)：从确认权限和选择应用开始，最终让该应用在满足所选条件后结束运行。
 - [让 AutoQuit 登录后自动运行](journeys/start-autoquit-at-login.md)：从 General 开启“开机启动”，最终在下一次登录 Mac 后自动进入运行状态。
+- [将 AutoQuit 更新到新版本](journeys/update-autoquit.md)：从菜单栏检查更新，最终安装可信的新版本并重新打开 AutoQuit。
 
 ## 核心业务数据
 
@@ -46,6 +57,7 @@ AutoQuit 让用户为 Mac 中的应用分别设置关闭条件，并可选择在
 - [开机启动选择](data-flows.md#launch-at-login-setting)：由用户在 General 设置并交给 macOS 保存，决定登录后是否自动启动 AutoQuit。
 - [应用关闭规则](data-flows.md#app-close-rules)：由用户在 APP Rules 中选择，保存在当前 Mac，供后台检查消费。
 - [应用当前状态](data-flows.md#application-current-state)：来自正在运行的应用和窗口读取结果，不保存为历史。
+- [软件更新信息](data-flows.md#software-update-information)：来自 GitHub Releases 的更新源，供 AutoQuit 判断、下载和验证新版本。
 
 ## 数据如何连接功能
 
@@ -56,12 +68,14 @@ flowchart LR
     C["应用前台与窗口状态"] --> D
     D --> E["保留应用或请求正常关闭"]
     F["开机启动选择"] --> G["登录后启动 AutoQuit"]
+    H["GitHub Releases 更新信息"] --> I["检查并验证新版本"]
+    I --> J["保留当前版本或安装更新"]
 ```
 
 ## 遇到卡点
 
-按“权限一直显示未授权”“开机启动等待批准”“找不到应用”“规则已选但应用仍在运行”等可见症状，查看[用户摩擦点与恢复路径](friction-points.md)。
+按“权限一直显示未授权”“开机启动等待批准”“找不到应用”“规则已选但应用仍在运行”或“检查更新失败”等可见症状，查看[用户摩擦点与恢复路径](friction-points.md)。
 
 ## 文档边界
 
-应用列表来自当前 Mac 的系统、全局和用户应用目录。AutoQuit 不提供等待时间设置、强制退出、关闭通知、操作历史、规则同步或应用内反馈入口。
+应用列表来自当前 Mac 的系统、全局和用户应用目录。软件更新依赖 GitHub Releases 和网络连接。AutoQuit 不提供等待时间设置、强制退出、关闭通知、操作历史、规则同步或应用内反馈入口。

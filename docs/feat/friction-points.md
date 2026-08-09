@@ -21,6 +21,10 @@
 - [开机启动等待系统批准](#launch-at-login-not-enabled)
 - [开机启动开关无法保持开启](#launch-at-login-failed)
 
+**软件更新**
+
+- [检查更新或安装新版失败](#update-check-failed)
+
 <a id="permission-not-granted"></a>
 
 ## General 一直显示未授权
@@ -211,6 +215,31 @@
 完成信号：开关显示开启；反复恢复为关闭时，当前没有错误详情或进一步恢复入口。
 
 相关文档：[General 与运行控制](modules/menu-bar-and-settings.md) / [让 AutoQuit 登录后自动运行](journeys/start-autoquit-at-login.md)
+
+<a id="update-check-failed"></a>
+
+## 检查更新或安装新版失败
+
+受影响目标：确认当前版本或安装新版 AutoQuit。
+
+用户会看到：通常会出现检查、授权或安装没有完成的提示，AutoQuit 继续运行当前版本；只读或临时安装位置等场景可能没有错误提示。
+
+触发条件：首个正式版本尚未成功发布、网络不可用、GitHub Releases 更新信息不可访问、发布信息和安装包未通过检查、用户没有完成管理员授权，或 AutoQuit 位于不可写、只读或临时打开位置。
+
+实际影响：本次更新结束；辅助功能授权、开机启动选择和应用规则不受影响。
+
+规则引用：[`UPD-R-003`](modules/software-updates.md#upd-r-003)、[`UPD-R-004`](modules/software-updates.md#upd-r-004)
+
+### 恢复步骤
+
+1. 关闭更新窗口，确认 AutoQuit 仍显示菜单栏图标。
+2. 确认 Mac 可以访问 GitHub。
+3. 确认 AutoQuit 已移到“应用程序”文件夹，而不是从磁盘映像或临时下载位置直接打开。
+4. 从菜单栏重新选择“Check for Updates…”；macOS 请求管理员用户名和密码时，确认请求来自 AutoQuit 的更新操作后再允许。
+
+完成信号：更新窗口报告当前已是最新，或显示可继续安装的新版本。持续失败时，当前没有备用更新源或应用内诊断入口。
+
+相关文档：[软件更新](modules/software-updates.md) / [将 AutoQuit 更新到新版本](journeys/update-autoquit.md)
 
 ## 什么时候联系反馈
 

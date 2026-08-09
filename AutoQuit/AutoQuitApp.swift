@@ -7,6 +7,7 @@
 
 import Combine
 import OSLog
+import Sparkle
 import SwiftUI
 
 @MainActor
@@ -14,14 +15,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     weak var state: AppState?
 
     var statusItem: NSStatusItem?
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
 
     var menu: NSMenu {
         let menu = NSMenu()
+
+        let checkForUpdatesItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        checkForUpdatesItem.target = updaterController
 
         let items = [
             NSMenuItem(title: "AutoQuit", action: nil, keyEquivalent: ""),
             NSMenuItem.separator(),
             NSMenuItem(title: "Preferences", action: #selector(self.openPreference), keyEquivalent: ""),
+            checkForUpdatesItem,
             NSMenuItem.separator(),
             NSMenuItem(
                 title: "Quit",
